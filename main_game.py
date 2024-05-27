@@ -1,62 +1,78 @@
-# main_game.py
-
+import tkinter as tk
+from tkinter import messagebox
 import user_data
 
-def print_board(board):
-    print(f' {board[0]} | {board[1]} | {board[2]} ')
-    print('---|---|---')
-    print(f' {board[3]} | {board[4]} | {board[5]} ')
-    print('---|---|---')
-    print(f' {board[6]} | {board[7]} | {board[8]} ')
+class TicTacToe:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("3 en Raya")
+        self.board = [' '] * 9
+        self.player = 'X'
+        self.username1 = user_data.get_username(1)
+        self.username2 = user_data.get_username(2)
+        self.scores = user_data.load_scores()
+        self.score1 = user_data.get_score(self.username1, self.scores)
+        self.score2 = user_data.get_score(self.username2, self.scores)
+        self.game_over = False
+        self.create_widgets()
+        self.update_status()
 
-def check_win(board):
-    win_conditions = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
-    for condition in win_conditions:
-        if board[condition[0]] == board[condition[1]] == board[condition[2]] != ' ':
-            return True
-    return False
+    def create_widgets(self):
+        self.buttons = []
+        for i in range(9):
+            button = tk.Button(self.root, text=' ', font=('normal', 20), width=5, height=2,
+                               command=lambda i=i: self.on_button_click(i))
+            button.grid(row=i // 3, column=i % 3)
+            self.buttons.append(button)
 
-def is_board_full(board):
-    return ' ' not in board
+        self.status_label = tk.Label(self.root, text="", font=('normal', 20))
+        self.status_label.grid(row=3, column=0, columnspan=3)
 
-def game():
-    scores = user_data.load_scores()
-
-    username1 = user_data.get_username(1)
-    score1 = user_data.get_score(username1, scores)
-    print(f"Bienvenido {username1}, tu puntaje actual es {score1}")
-
-    username2 = user_data.get_username(2)
-    score2 = user_data.get_score(username2, scores)
-    print(f"Bienvenido {username2}, tu puntaje actual es {score2}")
-
-    board = [' '] * 9
-    player = 'X'
-    username = username1
-
-    while True:
-        print_board(board)
-        move = int(input(f"Jugador {username} ({player}), elige una posición del 1 al 9: ")) - 1
-        if board[move] != ' ':
-            print("Esa posición ya está ocupada. Por favor, elige otra.")
-            continue
-        board[move] = player
-        if check_win(board):
-            print(f"¡Felicidades, jugador {username}! ¡Has ganado!")
-            if player == 'X':
-                score1 += 1
-                user_data.update_score(username1, score1, scores)
-                print(f"El nuevo puntaje de {username1} es {score1}")
+    def on_button_click(self, index):
+        if not self.game_over and self.board[index] == ' ':
+            self.board[index] = self.player
+            self.buttons[index].config(text=self.player)
+            if self.check_win():
+                self.end_game(f"¡Felicidades, {self.get_current_username()}! ¡Has ganado!")
+                if self.player == 'X':
+                    self.score1 += 1
+                    user_data.update_score(self.username1, self.score1, self.scores)
+                else:
+                    self.score2 += 1
+                    user_data.update_score(self.username2, self.score2, self.scores)
+                self.update_status()
+            elif self.is_board_full():
+                self.end_game("¡Es un empate!")
             else:
-                score2 += 1
-                user_data.update_score(username2, score2, scores)
-                print(f"El nuevo puntaje de {username2} es {score2}")
-            break
-        elif is_board_full(board):
-            print("Es un empate!")
-            break
-        player = 'O' if player == 'X' else 'X'
-        username = username2 if username == username1 else username1
+                self.switch_player()
+                self.update_status()
+
+    def check_win(self):
+        win_conditions = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
+        for condition in win_conditions:
+            if self.board[condition[0]] == self.board[condition[1]] == self.board[condition[2]] != ' ':
+                self.game_over = True
+                return True
+        return False
+
+    def is_board_full(self):
+        return ' ' not in self.board
+
+    def switch_player(self):
+        self.player = 'O' if self.player == 'X' else 'X'
+
+    def get_current_username(self):
+        return self.username1 if self.player == 'X' else self.username2
+
+    def update_status(self):
+        if not self.game_over:
+            self.status_label.config(text=f"{self.username1} (X): {self.score1} - {self.username2} (O): {self.score2}")
+
+    def end_game(self, message):
+        messagebox.showinfo("Fin del juego", message)
+        self.game_over = True
 
 if __name__ == "__main__":
-    game()
+    root = tk.Tk()
+    game = TicTacToe(root)
+    root.mainloop()
